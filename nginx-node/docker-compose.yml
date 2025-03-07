@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - nodeapp
+    networks:
+      - fullcycle_network
+
+  nodeapp:
+    build: ./nodeapp
+    container_name: nodeapp
+    volumes:
+      - ./nodeapp:/app
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy  # Aguarda o banco estar pronto
+    networks:
+      - fullcycle_network
+
+  db:
+    image: mysql:5.7
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: fullcycle
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - fullcycle_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mysql_data:
+
+networks:
+  fullcycle_network:
+    driver: bridge
